@@ -48,13 +48,9 @@ WHERE r.rental_date BETWEEN '2005-05-01 00:00:00' AND '2005-05-31 23:59:59';
 
 SELECT s.store_id, SUM(p.amount) AS revenue
 FROM store s
--- Join bảng staff lấy ID nhân viên được liên kết với từng store
 JOIN staff st ON st.store_id = s.store_id
--- Join bảng payment để lấy số $ thanh toán của từng nhân viên
 JOIN payment p ON p.staff_id = st.staff_id
--- Lọc kết quả gồm các khoản thanh toán được thực hiện trong năm 2005
 WHERE year(p.payment_date) = 2005
--- Nhóm kết quả theo ID store -> tính tổng doanh thu cho từng cửa hàng
 GROUP BY s.store_id;
 
 -- 1.7: Write a SQL query to return the names of all actors who have appeared in more than 20 films in the database.
@@ -62,11 +58,8 @@ GROUP BY s.store_id;
 
 SELECT a.first*name, a.last_name, COUNT(*) AS film*count
 FROM actor a
--- Join bảng film_actor để lấy all các bộ phim được link với từng diễn viên
 JOIN film_actor fa ON a.actor_id = fa.actor_id
--- Nhóm kết quả theo ID diễn viên -> count số lượng phim cho từng diễn viên
 GROUP BY a.actor_id
--- Lọc kết quả gồm các diễn viên đã đóng trên 20 phim
 HAVING COUNT(*) > 20;
 
 -- 1.8: Write a SQL query to return the titles of all films in the database that have a rating of 'PG-13' and a length of more than 120 minutes.
@@ -74,9 +67,7 @@ HAVING COUNT(*) > 20;
 
 SELECT title
 FROM film
--- Lọc phim có xếp hạng 'PG-13'
 WHERE rating = 'PG-13'
--- Lọc phim gồm những phim có thời lượng lớn hơn 120 phút
 AND length > 120;
 
 -- LEVEL 2:
@@ -84,18 +75,12 @@ AND length > 120;
 -- 2.1: Write a SQL query to return the top 10 customers who have generated the most revenue for the store, including their names and total revenue generated.
 -- Viết truy vấn SQL để trả về 10 khách hàng hàng đầu đã tạo ra nhiều doanh thu nhất cho cửa hàng, bao gồm tên của họ và tổng doanh thu được tạo ra.
 
--- Chọn họ, tên và tổng doanh thu cho top 10 khách hàng theo doanh thu
 SELECT c.first_name, c.last_name, SUM(p.amount) AS total_revenue
 FROM customer c
--- Join bảng cho thuê nhận tất cả các dịch vụ cho thuê được link với từng khách hàng
 JOIN rental r ON c.customer_id = r.customer_id
--- Join bảng thanh toán nhận tất cả các khoản thanh toán liên quan đến mỗi lần thuê
 JOIN payment p ON r.rental_id = p.rental_id
--- Nhóm kết quả theo ID khách hàng -> tính tổng doanh thu từng khách hàng
 GROUP BY c.customer_id
--- Sắp xếp result theo thứ tự tổng doanh thu giảm dần theo 10 khách hàng hàng đầu
 ORDER BY total_revenue DESC
--- Hiển thị cho 10 khách hàng hàng đầu theo doanh thu
 LIMIT 10;
 
 -- 2.2: Write a SQL query to return the names and contact information of all customers who have rented films in all categories in the database.
@@ -108,9 +93,7 @@ JOIN address a ON a.address_id = c.address_id
 JOIN inventory i ON r.inventory_id = i.inventory_id
 JOIN film_category fc ON i.film_id = fc.film_id
 JOIN category cate ON fc.category_id = cate.category_id
--- Nhóm các kết quả theo ID khách hàng đếm số lượng danh mục mỗi khách hàng đã thuê phim
 GROUP BY c.customer_id
--- Lọc kết quả gồm những khách hàng đã thuê phim ở tất cả các danh mục
 HAVING COUNT(DISTINCT cate.category_id) = (SELECT COUNT(\*) FROM category);
 
 -- 2.3: Write a SQL query to return the titles of all films in the database that have been rented at least once but never returned.
@@ -120,24 +103,17 @@ SELECT f.title
 FROM film f
 JOIN inventory i ON f.film_id = i.film_id
 JOIN rental r ON i.inventory_id = r.inventory_id
--- Lọc result để chỉ bao gồm các dịch vụ cho thuê chưa được trả lại
 WHERE r.return_date IS NULL;
 
 -- 2.4: Write a SQL query to return the names of all actors who have appeared in at least one film in each category in the database.
 -- Viết truy vấn SQL để trả về tên của tất cả các diễn viên đã xuất hiện trong ít nhất một bộ phim trong mỗi danh mục trong cơ sở dữ liệu.
 
--- chọn tên và họ của các diễn viên đã đóng phim từ tất cả các thể loại
 SELECT actor.first_name, actor.last_name
 FROM actor
--- JOIN bảng diễn viên với bảng film_actor trên actor_id
 JOIN film_actor ON actor.actor_id = film_actor.actor_id
--- JOIN bảng film_actor với bảng film_category trên film_id
 JOIN film_category ON film_actor.film_id = film_category.film_id
--- nhóm kết quả theo actor_id
 GROUP BY actor.actor_id
--- lọc các diễn viên đã đóng phim từ tất cả các danh mục
 HAVING COUNT(DISTINCT film_category.category_id) = (
--- sub query lấy tổng số danh mục
 SELECT COUNT(\*) FROM category
 );
 
@@ -146,37 +122,25 @@ SELECT COUNT(\*) FROM category
 
 SELECT c.first_name, c.last_name, COUNT(\*) as rental_count
 FROM customer c
--- JOIN bảng rental và inventory để lấy thông tin về các thuê bao và bộ phim tương ứng.
 JOIN rental r1 ON c.customer_id = r1.customer_id
--- JOIN lại bảng rental một lần nữa chỉ lấy các thuê bao có cùng ngày thuê nhưng khác rental_id -> loại bỏ bản ghi trùng lặp.
 JOIN rental r2 ON r1.customer_id = r2.customer_id AND r1.rental_id <> r2.rental_id AND r1.rental_date = r2.rental_date
 JOIN inventory i ON r1.inventory_id = i.inventory_id
--- Nhóm theo customer_id để tính tổng số lượng thuê của mỗi khách hàng.
 GROUP BY c.customer_id
--- chỉ chọn các khách hàng có ít nhất hai thuê trong kết quả truy vấn.
 HAVING rental_count > 1;
 
 -- 2.6: Write a SQL query to return the total revenue generated by each actor in the database, based on the rental fees of the films they have appeared in.
 -- Viết truy vấn SQL để trả về tổng doanh thu do mỗi diễn viên tạo ra trong cơ sở dữ liệu, dựa trên phí thuê phim mà họ đã xuất hiện.
 
 SELECT actor.actor_id, actor.first_name, actor.last_name,
--- tổng doanh thu cho mỗi diễn viên và đặt kết quả là total_revenue
 SUM(payment.amount) AS total_revenue
 FROM
 actor
--- JOIN bảng film_actor trên cột ID diễn viên để connect giữa diễn viên và phim
 JOIN film_actor ON actor.actor_id = film_actor.actor_id
--- JOIN bảng phim trên cột ID phim để lấy thông tin về phim
 JOIN film ON film_actor.film_id = film.film_id
--- JOIN bảng tồn kho trên cột ID phim để lấy thông tin tồn kho của từng phim
 JOIN inventory ON film.film_id = inventory.film_id
--- JOIN bảng cho thuê trên các cột ID hàng tồn kho lấy thông tin những lần cho thuê
 JOIN rental ON inventory.inventory_id = rental.inventory_id
--- JOIN bảng thanh toán trên các cột ID cho thuê lấy thông tin các khoản thanh toán đã được thực hiện
 JOIN payment ON rental.rental_id = payment.rental_id
--- Nhóm các kết quả theo diễn viên để tổng hợp số $ thanh toán theo diễn viên
 GROUP BY actor.actor_id, actor.first_name, actor.last_name
--- Sắp xếp tổng doanh thu theo thứ tự giảm dần
 ORDER BY total_revenue DESC;
 
 -- 2.7: Write a SQL query to return the names of all actors who have appeared in at least one film with a rating of 'R', but have never appeared in a film with a rating of 'G'.
@@ -184,22 +148,14 @@ ORDER BY total_revenue DESC;
 
 SELECT actor.first_name, actor.last_name
 FROM actor
--- JOIN bảng diễn viên với bảng film_actor trên actor_id để tìm tất cả các phim diễn viên đã xuất hiện
 JOIN film_actor ON actor.actor_id = film_actor.actor_id
--- JOIN bảng film_actor với bảng phim trên film_id lấy xếp hạng của từng phim
 JOIN film ON film_actor.film_id = film.film_id
--- lọc những bộ phim có xếp hạng 'R'
 WHERE film.rating = 'R'
--- Loại các diễn viên đã xuất hiện trong phim có xếp hạng 'G'
 AND actor.actor_id NOT IN (
--- Sub query: Chọn actor_id các diễn viên đã xuất hiện trong phim có xếp hạng 'G'
 SELECT actor.actor_id
 FROM actor
--- JOIN bảng diễn viên với bảng film_actor trên actor_id để tìm tất cả các phim mà mỗi diễn viên đã xuất hiện
 JOIN film_actor ON actor.actor_id = film_actor.actor_id
--- JOIN bảng film_actor với bảng phim trên film_id để lấy xếp hạng của từng phim
 JOIN film ON film_actor.film_id = film.film_id
--- Chỉ lọc những bộ phim có xếp hạng 'G'
 WHERE film.rating = 'G'
 )
 -- Nhóm các kết quả theo actor_id, first_name và last_name loại bỏ các kết quả trùng lặp
@@ -210,12 +166,9 @@ GROUP BY actor.actor_id, actor.first_name, actor.last_name;
 
 SELECT film.title, film.film_id
 FROM film
--- JOIN bảng phim với bảng tồn kho trên film_id để tìm các bản sao của mỗi phim
 JOIN inventory ON film.film_id = inventory.film_id
--- JOIN bảng tồn kho với bảng cho thuê trên inventory_id để tìm tất cả các bản cho thuê của từng bản sao film
 JOIN rental ON inventory.inventory_id = rental.inventory_id
 GROUP BY film.film_id
--- lọc phim đã thuê bởi ít nhất 30 KH duy nhất và không có phim cho thuê quá hạn
 HAVING COUNT(DISTINCT rental.customer_id) > 30
 AND COUNT(DISTINCT rental.customer_id) = COUNT(\*);
 
@@ -230,11 +183,9 @@ JOIN film ON inventory.film_id = film.film_id
 JOIN film_category ON film.film_id = film_category.film_id
 JOIN category ON film_category.category_id = category.category_id
 WHERE NOT EXISTS (
--- subquery kiểm tra có tồn tại danh mục mà khách hàng chưa thuê phim từ đó không
 SELECT *
 FROM category
 WHERE NOT EXISTS (
--- subquery kiểm tra khách hàng đã thuê phim từ một danh mục nhất định chưa
 SELECT \_
 FROM film_category
 JOIN inventory ON film_category.film_id = inventory.film_id
@@ -254,9 +205,7 @@ JOIN rental r ON i.inventory_id = r.inventory_id
 JOIN customer c ON r.customer_id = c.customer_id
 JOIN film_category fc ON f.film_id = fc.film_id
 JOIN category ca ON fc.category_id = ca.category_id
--- lọc kết quả trên danh mục hành động
 WHERE ca.name = 'Action'  
--- lọc kết quả trên subquery
 AND c.customer_id IN (
 SELECT DISTINCT c.customer_id
 FROM customer c
@@ -265,7 +214,6 @@ JOIN inventory i ON r.inventory_id = i.inventory_id
 JOIN film f ON i.film_id = f.film_id
 JOIN film_category fc ON f.film_id = fc.film_id
 JOIN category ca ON fc.category_id = ca.category_id
--- lọc kết quả trên danh mục hành động
 WHERE ca.name = 'Action'
 );
 
@@ -281,7 +229,6 @@ JOIN film_category fc ON fa.film_id = fc.film_id
 JOIN category c ON fc.category_id = c.category_id
 JOIN inventory i ON fc.film_id = i.film_id
 JOIN rental r ON i.inventory_id = r.inventory_id
--- lọc các diễn viên đã đóng phim ít nhất một thể loại
 WHERE a.actor_id IN (
 SELECT fa.actor_id
 FROM film_actor fa
@@ -289,7 +236,6 @@ JOIN film_category fc ON fa.film_id = fc.film_id
 GROUP BY fa.actor_id
 HAVING COUNT(DISTINCT fc.category_id) > 0
 )
--- nhóm kết quả theo actor_id và category_id
 GROUP BY a.actor_id, c.category_id;
 
 -- 3.2: Write a SQL query to database sakila and return the names of all actors who have appeared in a film with a rating of 'R' and a length of more than 2 hours, but have never appeared in a film with a rating of 'G'
@@ -301,18 +247,14 @@ JOIN film_actor fa ON a.actor_id = fa.actor_id
 JOIN film f ON fa.film_id = f.film_id
 JOIN film_category fc ON f.film_id = fc.film_id
 JOIN category c ON fc.category_id = c.category_id
--- Lọc kết quả chỉ chọn những phim được xếp hạng R dài hơn 120 phút
 WHERE f.rating = 'R' AND f.length > 120
--- Loại các diễn viên đã đóng phim xếp hạng G
 AND a.actor_id NOT IN (
--- subquery chọn diễn viên đã đóng phim được xếp hạng G
 SELECT DISTINCT actor.actor_id
 FROM actor
 JOIN film_actor ON actor.actor_id = film_actor.actor_id
 JOIN film ON film_actor.film_id = film.film_id
 JOIN film_category ON film.film_id = film_category.film_id
 JOIN category ON film_category.category_id = category.category_id
--- Lọc kết quả chỉ chọn phim được xếp hạng G
 WHERE film.rating = 'G'
 );
 
@@ -320,16 +262,12 @@ WHERE film.rating = 'G'
 -- Viết truy vấn SQL để cơ sở dữ liệu trả về tên của tất cả khách hàng đã thuê hơn 10 bộ phim trong một giao dịch, cùng với số lượng phim họ đã thuê và tổng phí thuê.
 
 SELECT c.first*name, c.last_name,
--- đếm số lần cho thuê được thực hiện bởi khách hàng
 COUNT(*) as number*of_rentals,  
--- tính tổng phí thuê khách hàng đã thanh toán
 SUM(p.amount) as total_rental_fee
 FROM customer c  
 INNER JOIN payment p ON c.customer_id = p.customer_id  
 INNER JOIN rental r ON p.rental_id = r.rental_id
--- nhóm kết quả theo id khách hàng
 GROUP BY c.customer_id  
--- chỉ gồm khách hàng đã thực hiện hơn 10 lần thuê
 HAVING COUNT(*) > 10;
 
 -- 3.4: Write a SQL query to return the names of all customers who have rented every film in a category, along with the total number of films rented and the total rental fee.
@@ -342,9 +280,7 @@ JOIN inventory i ON r.inventory_id = i.inventory_id
 JOIN film f ON i.film_id = f.film_id
 JOIN film_category fc ON f.film_id = fc.film_id
 JOIN category ca ON fc.category_id = ca.category_id
--- Nhóm kết quả theo tên đầy đủ của khách hàng
 GROUP BY full_name
--- Loại bất kỳ khách hàng nào chưa thuê phim
 HAVING total_rentals > 0;
 
 -- 3.5 (error): Write a SQL query to return the titles of all films in the database that have been rented by the same customer more than once in a single day, along with the names of the customers who rented them and the number of times they were rented.
@@ -369,45 +305,33 @@ HAVING COUNT(*) > 0;
 -- Viết truy vấn SQL để trả về tên của tất cả các diễn viên đã xuất hiện trong ít nhất một bộ phim cùng với mọi diễn viên khác trong cơ sở dữ liệu, cùng với số lượng phim họ đã xuất hiện cùng nhau.
 
 SELECT CONCAT(A.first_name,' ',A.last_name) as full_name1, CONCAT(B.first_name,' ',B.last_name) as full_name2,
--- Đếm số lượng bộ phim mà cặp diễn viên đã đóng chung
 COUNT(\*) as num_movies
 FROM film_actor as fa1
--- Link 2 bảng "film_actor" để lấy danh sách các cặp diễn viên đã đóng chung
 JOIN film_actor as fa2 ON fa1.film_id = fa2.film_id
--- Lấy thông tin về diễn viên A
 JOIN actor as A ON fa1.actor_id = A.actor_id
--- Lấy thông tin về diễn viên B và kiểm tra xem diễn viên A và B có giống nhau không
 JOIN actor as B ON fa2.actor_id = B.actor_id AND A.first_name != B.first_name AND A.last_name != B.last_name
--- Nhóm kết quả theo tên của cặp diễn viên
 GROUP BY full_name1, full_name2
--- Sắp xếp kết quả theo số lượng bộ phim giảm dần
 ORDER BY num_movies DESC;
 
 -- 3.7: Write a SQL query to return the names of all customers who have rented at least one film from each category in the database sakila, along with the number of films rented from each category.
 -- Viết truy vấn SQL để trả về tên của tất cả các khách hàng đã thuê ít nhất một bộ phim từ mỗi danh mục trong cơ sở dữ liệu sakila, cùng với số lượng phim đã thuê từ mỗi danh mục.
 
 SELECT c.first_name,c.last_name,
--- Đếm số lượng giá trị theo id trong bảng rental mỗi khách hàng và as = 'total_rentals'
 COUNT(r.rental_id) AS total_rentals,
--- Đếm số lượng giá trị category_id duy nhất trong bảng phim mỗi khách hàng và as = 'total_categories'
 COUNT(DISTINCT f.category_id) AS total_categories
 FROM customer c
 INNER JOIN rental r ON c.customer_id = r.customer_id
 INNER JOIN inventory i ON r.inventory_id = i.inventory_id
 INNER JOIN film_category f ON i.film_id = f.film_id
--- Chỉ chọn những danh mục tồn tại trong bảng danh mục
 WHERE f.category_id IN (
 SELECT category_id
 FROM category
 )
--- Nhóm theo customer_id để có tổng số
 GROUP BY c.customer_id
--- Check số lượng danh mục riêng biệt khách hàng đã thuê có bằng tổng số danh mục trong bảng danh mục không
 HAVING COUNT(DISTINCT f.category_id) = (
 SELECT COUNT(\*)
 FROM category
 )
--- Sắp xếp theo tổng số tiền thuê theo thứ tự giảm dần
 ORDER BY total_rentals DESC;
 
 -- 3.8: Write a SQL query to return the titles of all films in the database sakila that have been rented more than 100 times, but have never been rented by any customer who has rented a film with a rating of 'G'.
@@ -415,7 +339,6 @@ ORDER BY total_rentals DESC;
 
 SELECT title
 FROM film
--- Phim không được xếp hạng 'G'
 WHERE film_id NOT IN (
 SELECT inventory.film_id
 FROM inventory
@@ -424,7 +347,6 @@ JOIN customer ON rental.customer_id = customer.customer_id
 JOIN film ON inventory.film_id = film.film_id
 WHERE film.rating = 'G'
 )
--- Bộ phim phải được thuê hơn 10 lần
 AND film_id IN (
 SELECT inventory.film_id
 FROM inventory
@@ -433,14 +355,12 @@ GROUP BY inventory.film_id
 HAVING COUNT(\*) > 30
 );
 
--- kiểm tra số lần cho thuê của mỗi bộ phim
 SELECT film.title, COUNT(rental.rental_id) as rental_count
 FROM film
 JOIN inventory ON film.film_id = inventory.film_id
 JOIN rental ON inventory.inventory_id = rental.inventory_id
 GROUP BY film.film_id
 HAVING COUNT(\*) > 30;
--- Kết quả trả về sẽ là danh sách các bộ phim đã được cho thuê nhiều hơn 10 lần và số lần cho thuê của mỗi bộ phim.
 
 -- 3.9: Write a SQL query to return the names of all customers who have rented a film from a category they have never rented from before, and have also never rented a film longer than 3 hours.
 -- Viết truy vấn SQL để trả về tên của tất cả các khách hàng đã thuê phim từ danh mục mà họ
@@ -502,15 +422,11 @@ WHERE film.rating = 'R' AND film.length < 90
 -- Viết truy vấn SQL để cập nhật giá thuê của tất cả các phim trong cơ sở dữ liệu sakila đã được thuê hơn 100 lần, đặt giá thuê mới cao hơn 10% so với giá hiện tại.
 
 UPDATE film
--- Nhân tỷ lệ cho thuê hiện tại lên 10%
 SET rental*rate = rental_rate * 1.1
--- Lọc các phim sẽ được cập nhật bằng truy vấn phụ
 WHERE film*id IN (
--- Chọn tất cả film_ids từ hàng tồn kho đã được thuê hơn 100 lần
 SELECT inventory.film_id
 FROM rental
 JOIN inventory ON rental.inventory_id = inventory.inventory_id
--- Nhóm kho theo film_id và chỉ bao gồm những kho có hơn 100 phim cho thuê
 GROUP BY inventory.film_id
 HAVING COUNT(*) > 100
 );
@@ -530,14 +446,10 @@ ORDER BY film_id;
 -- Viết truy vấn SQL để cập nhật thời lượng thuê của tất cả các phim trong cơ sở dữ liệu đã được thuê hơn 5 lần, đặt thời lượng mới dài hơn 5% so với thời lượng hiện tại.
 
 UPDATE film
--- Nhân thời hạn thuê hiện tại với 1,1 và làm tròn kết quả
 SET rental_duration = ROUND(rental_duration \* 1.1)
--- Lọc các phim sẽ được cập nhật bằng truy vấn phụ
 WHERE film_id IN (
--- Chọn tất cả film_ids từ các phim cho thuê đã được thuê hơn 5 lần
 SELECT film_id
 FROM rental
--- Nhóm các video cho thuê theo film_id và chỉ bao gồm những video có số lượng hơn 5 video cho thuê
 GROUP BY film_id
 HAVING COUNT(rental_id) > 5
 );
@@ -556,12 +468,10 @@ HAVING COUNT(rental_id) > 5);
 UPDATE film f
 JOIN film_category fc ON f.film_id = fc.film_id
 JOIN category c ON fc.category_id = c.category_id
--- khai báo các cột trong bảng "phim" được update. được tăng giá trị hiện tại 20% và giữ lại 2 chữ số sau dấu phẩy bằng hàm round.
 SET f.rental_rate = round(f.rental_rate \* 1.2, 2)
--- chỉ update những bộ phim thuộc thể loại "Action" và sản xuất trước năm 2007.
 WHERE c.name = 'Action' AND f.release_year < 2007;
 
--- Trc khi update
+-- SELECT
 SELECT f.film_id, f.title, f.rental_rate, f.release_year
 FROM film f
 JOIN film_category fc ON f.film_id = fc.film_id
@@ -604,14 +514,12 @@ AND YEAR(rental.return_date) = 2005
 -- Viết truy vấn SQL để cập nhật giá thuê của tất cả các phim trong cơ sở dữ liệu đã được hơn 10 khách hàng thuê, đặt giá mới cao hơn 5% so với giá hiện tại, nhưng không cao hơn $4,00.
 
 UPDATE film
--- Giá thuê tối đa là 4 đô la
 SET rental_rate = LEAST(rental_rate \* 1.05, 4.00)
 WHERE film_id IN (
 SELECT inventory.film_id
 FROM rental
 JOIN inventory ON rental.inventory_id = inventory.inventory_id
 GROUP BY inventory.film_id
--- Chỉ lấy các bộ phim được thuê bởi hơn 10 khách hàng khác nhau
 HAVING COUNT(DISTINCT rental.customer_id) > 10
 );
 
@@ -656,7 +564,7 @@ WHERE category.name = 'Sci-Fi' AND YEAR(film.release_year) = 2006
 ) AS sub ON film.film_id = sub.film_id
 SET rental_duration = sub.length;
 
--- code toan
+-- code run
 UPDATE film
 SET length = (
 SELECT length
@@ -739,357 +647,3 @@ WHERE rating = 'G' AND length < 60;
 SELECT title, rental_rate
 FROM film
 WHERE rating = 'G' AND length < 60;
-
--- 4.11: Write a SQL query to update the salary of all employees in the database sakila and explain details based on their job title and years of experience, setting the new salary to be equal to the current salary multiplied by a factor that depends on their job title and years of experience.
--- Viết truy vấn SQL để cập nhật mức lương của tất cả nhân viên trong cơ sở dữ liệu sakila và giải thích chi tiết dựa trên chức danh công việc và số năm kinh nghiệm của họ, đặt mức lương mới bằng mức lương hiện tại nhân với hệ số phụ thuộc vào chức danh công việc của họ và Số năm kinh nghiệm.
--- UPDATE sakila.employee e
--- SET e.salary =
--- CASE e.job*title
--- WHEN 'Manager' THEN e.salary * (1 + 0.1 _ FLOOR(e.years_of_experience / 5))
--- WHEN 'Sales Associate' THEN e.salary _ (1 + 0.05 _ FLOOR(e.years_of_experience / 3))
--- ELSE e.salary _ (1 + 0.02 \_ FLOOR(e.years_of_experience / 2))
--- END;
-
--- 4.13: Write a SQL query to update the rating of all hotels in the database based on their current rating and the average rating of all hotels in the same city, setting the new rating to be equal to the average rating plus a factor that depends on the current rating of the hotel.
-
--- SELECT film_id, title, rental_rate
--- FROM film
--- WHERE film_id IN (
--- SELECT rental.film_id
--- FROM rental
--- GROUP BY rental.film_id
--- HAVING COUNT(\*) > 10
--- )
-
--- UPDATE film
--- SET rental*rate = LEAST(4.00, rental_rate * 1.05)
--- WHERE film*id IN (
--- SELECT rental.film_id
--- FROM rental
--- GROUP BY rental.film_id
--- HAVING COUNT(*) > 10
--- )
-
--- 4.14: Write a SQL query to update the status of all orders in the database based on the current status and the number of days that have passed since the order was placed, setting the new status to be equal to 'Shipped' if the number of days is greater than or equal to the estimated shipping time, and 'Processing' otherwise.
--- k tồn tại bảng order
-UPDATE orders
-SET status = customer
-CASE
-WHEN (DATEDIFF(NOW(), order_date) >= estimated_shipping_time) THEN 'Shipped'
-ELSE 'Processing'
-END;
-
--- 4.15: Write a SQL query to update the price of all products in the database based on their current price and the number of times they have been ordered, setting the new price to be equal to the current price times a factor that depends on the number of times they have been ordered.
--- k tồn tại bảng order
-UPDATE products
-SET price = price \*
-CASE
-WHEN times_ordered < 5 THEN 1
-WHEN times_ordered >= 5 AND times_ordered < 10 THEN 0.95
-WHEN times_ordered >= 10 AND times_ordered < 20 THEN 0.9
-ELSE 0.85
-END;
-
---- File actor.model.ts
-// import module pool từ file ../database. Module này được sử dụng để tạo một connection pool đến CSDL.
-import { pool } from "../database";
-
-// Định nghĩa interface IActor để xác định kiểu dữ liệu cho đối tượng Actor.
-
-interface IActor {
-first_name: string;
-last_name: string;
-}
-
-// Khai báo một class Actor và xuất nó ra bên ngoài module.
-
-export class Actor {
-// Phương thức query: Phương thức này được sử dụng để thực hiện các câu lệnh SQL và trả về kết quả trong một Promise. Nó truyền vào một chuỗi SQL và sử dụng pool.promise() để tạo một promise pool để thực hiện các truy vấn. Sau đó, nó sử dụng await promisePool.query(sql) để thực hiện câu lệnh SQL và trả về kết quả.
-
-async query(sql: string) {
-try {
-const promisePool = pool.promise();
-const [rows] = await promisePool.query(sql);
-return rows;
-} catch (error) {
-console.error(error);
-throw error;
-}
-}
-
-// Phương thức getName: Phương thức này trả về danh sách các first_name và last_name của tất cả các actor trong bảng actor. Nó sử dụng câu lệnh SQL "SELECT first_name,last_name FROM actor" và gọi phương thức query để thực hiện truy vấn.
-
-// -- 1.1: Write a SQL query to return the first and last names of all actors in the database.
-// -- Viết truy vấn SQL để trả về họ và tên của tất cả các diễn viên trong cơ sở dữ liệu.
-
-getAllActorsName() {
-const sql = `SELECT first_name,last_name FROM actor`;
-return this.query(sql);
-}
-
-// -- 1.7: Write a SQL query to return the names of all actors who have appeared in more than 20 films in the database.
-// -- Viết truy vấn SQL để trả về tên của tất cả các diễn viên đã xuất hiện trong hơn 20 bộ phim trong cơ sở dữ liệu.
-
-getActorsWithMoreThan20Films() {
-const sql = `SELECT a.first_name, a.last_name, COUNT(*) AS film_count
-  FROM actor a
-  -- Join bảng film_actor để lấy all các bộ phim được link với từng diễn viên
-  JOIN film_actor fa ON a.actor_id = fa.actor_id
-  -- Nhóm kết quả theo ID diễn viên -> count số lượng phim cho từng diễn viên
-  GROUP BY a.actor_id
-  -- Lọc kết quả gồm các diễn viên đã đóng trên 20 phim
-  HAVING COUNT(*) > 20;`;
-return this.query(sql);
-}
-
-// Phương thức getNameById: Phương thức này trả về danh sách các first_name và last_name của một actor trong bảng actor dựa trên id được truyền vào. Nó sử dụng câu lệnh SQL "SELECT first_name,last_name FROM actor WHERE actor_id = ${id}" và gọi phương thức query để thực hiện truy vấn.
-
-// -- 2.4: Write a SQL query to return the names of all actors who have appeared in at least one film in each category in the database.
-// -- Viết truy vấn SQL để trả về tên của tất cả các diễn viên đã xuất hiện trong ít nhất một bộ phim trong mỗi danh mục trong cơ sở dữ liệu.
-
-getActorsByCategory() {
-const sql = `SELECT actor.first_name, actor.last_name
-    FROM actor
-    JOIN film_actor ON actor.actor_id = film_actor.actor_id
-    JOIN film_category ON film_actor.film_id = film_category.film_id
-    GROUP BY actor.actor_id
-    HAVING COUNT(DISTINCT film_category.category_id) = (
-    SELECT COUNT(*) FROM category
-    );`;
-return this.query(sql);
-}
-
-// -- 2.7: Write a SQL query to return the names of all actors who have appeared in at least one film with a rating of 'R', but have never appeared in a film with a rating of 'G'.
-// -- Viết một truy vấn SQL để trả về tên của tất cả các diễn viên đã xuất hiện trong ít nhất một bộ phim có xếp hạng 'R', nhưng chưa bao giờ xuất hiện trong một bộ phim có xếp hạng 'G'.
-
-getActorsWithRRatingButNotGRatingMovies() {
-const sql = `    SELECT actor.first_name, actor.last_name
-  FROM actor
-  JOIN film_actor ON actor.actor_id = film_actor.actor_id
-  JOIN film ON film_actor.film_id = film.film_id
-  WHERE film.rating = 'R'
-  AND actor.actor_id NOT IN (
-    SELECT actor.actor_id
-    FROM actor
-    JOIN film_actor ON actor.actor_id = film_actor.actor_id
-    JOIN film ON film_actor.film_id = film.film_id
-    WHERE film.rating = 'G'
-  )
-  GROUP BY actor.actor_id, actor.first_name, actor.last_name;
-   `;
-return this.query(sql);
-}
-
-// -- 3.2: Write a SQL query to database sakila and return the names of all actors who have appeared in a film with a rating of 'R' and a length of more than 2 hours, but have never appeared in a film with a rating of 'G'
-// -- Viết truy vấn SQL tới cơ sở dữ liệu sakila và trả về tên của tất cả các diễn viên đã xuất hiện trong phim có xếp hạng 'R' và thời lượng hơn 2 giờ, nhưng chưa từng xuất hiện trong phim có xếp hạng 'G'
-
-getRatedActorsLongerThan2hrsNotInGRatedFilms() {
-const sql = `  SELECT a.first_name, a.last_name
-  // FROM actor a
-  // JOIN film_actor fa ON a.actor_id = fa.actor_id
-  // JOIN film  f ON fa.film_id = f.film_id
-  // JOIN film_category fc ON f.film_id = fc.film_id
-  // JOIN category c ON fc.category_id = c.category_id
-  // WHERE f.rating = 'R' AND f.length > 120
-  // AND a.actor_id NOT IN (
-  // SELECT DISTINCT actor.actor_id
-  // FROM actor
-  // JOIN film_actor ON actor.actor_id = film_actor.actor_id
-  // JOIN film ON film_actor.film_id = film.film_id
-  // JOIN film_category ON film.film_id = film_category.film_id
-  // JOIN category ON film_category.category_id = category.category_id
-  // WHERE film.rating = 'G'
-  // );
-   `;
-return this.query(sql);
-}
-
-// -- 3.10: Write a SQL query to return the names of all actors who have appeared in a film with a rating of 'PG-13' and a length of more than 2 hours, and have also appeared in a film with a rating of 'R' and a length of less than 90 minutes.
-// -- Viết truy vấn SQL để trả về tên của tất cả các diễn viên đã xuất hiện trong một bộ phim có xếp hạng 'PG-13' và thời lượng hơn 2 giờ, đồng thời cũng đã xuất hiện trong một bộ phim có xếp hạng 'R' và thời lượng dưới 90 phút.
-
-getActorsInLongPG13AndShortR() {
-const sql = `    SELECT DISTINCT actor.first_name, actor.last_name
-    FROM actor
-    INNER JOIN film_actor ON actor.actor_id = film_actor.actor_id
-    INNER JOIN film ON film.film_id = film_actor.film_id
-    WHERE film.rating = 'PG-13' AND film.length > 120
-    AND actor.actor_id IN (
-      SELECT film_actor.actor_id
-      FROM film_actor
-      INNER JOIN film ON film.film_id = film_actor.film_id
-      WHERE film.rating = 'R' AND film.length < 90
-    );
-   `;
-return this.query(sql);
-}
-
-// Example
-getNameById(id: number) {
-const sql = `SELECT first_name,last_name FROM actor Where actor_id = ${id}`;
-return this.query(sql);
-}
-
-// Phương thức updateNameOne: Phương thức này sẽ cập nhật tên first_name của một actor trong bảng actor dựa trên id và newName được truyền vào. Câu lệnh SQL được sử dụng là "UPDATE actor SET first_name = '${newName}' WHERE actor_id = ${id};" và gọi phương thức query để thực hiện truy vấn.
-
-updateNameOne(id: number, newName: string) {
-const sql = `UPDATE actor
-    SET first_name = '${newName}'
-    WHERE actor_id = ${id};`;
-return this.query(sql);
-}
-}
-
--- Actor.controller
-import { NextFunction, Request, Response } from "express";
-import { Actor } from "../model/actor.model";
-
-/_Hàm này xử lý yêu cầu GET /actors để truy xuất danh sách tên của tất cả diễn viên. Khi yêu cầu được gọi, hàm này tạo một đối tượng Actor mới và gọi phương thức getName() của đối tượng để lấy danh sách tên của tất cả diễn viên từ cơ sở dữ liệu. Sau đó, hàm trả về kết quả dưới dạng JSON và mã trạng thái HTTP 200 nếu thành công hoặc HTTP 500 nếu có lỗi. _/
-
-const getAllActorsName = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const data = await actor.getAllActorsName();
-return res.status(200).json(data);
-} catch (error) {
-return res.status(500);
-}
-};
-
-const getActorsWithMoreThan20Films = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const data = await actor.getActorsWithMoreThan20Films();
-return res.status(200).json(data);
-} catch (error) {
-return res.status(500);
-}
-};
-
-const getActorsByCategory = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const data = await actor.getActorsByCategory();
-return res.status(200).json(data);
-} catch (error) {
-return res.status(500);
-}
-};
-
-const getActorsWithRRatingButNotGRatingMovies = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const data = await actor.getActorsWithRRatingButNotGRatingMovies();
-return res.status(200).json(data);
-} catch (error) {
-return res.status(500);
-}
-};
-
-const getRatedActorsLongerThan2hrsNotInGRatedFilms = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const data = await actor.getRatedActorsLongerThan2hrsNotInGRatedFilms();
-return res.status(200).json(data);
-} catch (error) {
-return res.status(500);
-}
-};
-
-const getActorsInLongPG13AndShortR = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const data = await actor.getActorsInLongPG13AndShortR();
-return res.status(200).json(data);
-} catch (error) {
-return res.status(500);
-}
-};
-
-// Example
-/_
-Hàm này xử lý yêu cầu GET /actors/:id để truy xuất tên của một diễn viên dựa trên ID. Khi yêu cầu được gọi, hàm này tạo một đối tượng Actor mới và gọi phương thức getNameById() của đối tượng để lấy tên của diễn viên có ID tương ứng từ cơ sở dữ liệu. Sau đó, hàm trả về kết quả dưới dạng JSON và mã trạng thái HTTP 200 nếu thành công hoặc HTTP 500 nếu có lỗi.
-_/
-const getNameOneControl = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const actor = new Actor();
-const id = req.params.id;
-
-    const data = await actor.getNameById(Number(id));
-    return res.status(200).json(data);
-
-} catch (error) {
-return res.status(500);
-}
-};
-
-/\*
-
-- Comment:
-  const getNameOneControl = async (req: Request, res: Response, next: NextFunction) => {: đây là cú pháp khai báo một function với tên getNameOneControl và ba tham số là req, res và next. Tham số này sẽ được truyền vào khi gọi hàm.
-  try {: bắt đầu một block try-catch để xử lý lỗi.
-  const actor = new Actor();: tạo một đối tượng mới của lớp Actor.
-  const id = req.params.id;: lấy giá trị của tham số id từ request parameters.
-  const data = await actor.getNameById(Number(id));: gọi đến phương thức getNameById của đối tượng actor để lấy tên của người chơi theo id. Hàm này được đánh dấu là async để cho phép sử dụng await để đợi kết quả trả về.
-  return res.status(200).json(data);: Trả về thành công với HTTP status code 200 và dữ liệu tên người chơi dưới dạng JSON.
-  } catch (error) {: Xử lý ngoại lệ trong trường hợp có lỗi xảy ra.
-  return res.status(500);: Trả về lỗi với HTTP status code 500.
-  \*/
-
-/_
-Hàm này xử lý yêu cầu PUT /actors/:id để cập nhật tên của một diễn viên dựa trên ID. Khi yêu cầu được gọi, hàm này lấy ID và tên mới từ yêu cầu và sử dụng chúng để gọi phương thức updateNameOne() của đối tượng Actor để cập nhật tên của diễn viên có ID tương ứng trong cơ sở dữ liệu. Sau đó, hàm trả về kết quả dưới
-_/
-
-const updateNameController = async (
-req: Request,
-res: Response,
-next: NextFunction
-) => {
-try {
-const id = req.params.id;
-const name = req.body.name;
-const actor = new Actor();
-const data = await actor.updateNameOne(Number(id), name);
-res.status(200).json(data);
-} catch (error) {
-return res.status(500).json(error);
-}
-};
-
-export default {
-getAllActorsName,
-getActorsWithMoreThan20Films,
-getActorsByCategory,
-getActorsWithRRatingButNotGRatingMovies,
-getRatedActorsLongerThan2hrsNotInGRatedFilms,
-getActorsInLongPG13AndShortR,
-getNameOneControl,
-updateNameController,
-};
